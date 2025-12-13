@@ -11,48 +11,54 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-func AddUser(w http.ResponseWriter, r *http.Request) {
-  decoder := json.NewDecoder(r.Body)
-  var user repository.User
-  err := decoder.Decode(&user)
-  if err != nil {
-    w.WriteHeader(http.StatusBadRequest)
-    w.Write([]byte("could not deserialize json body into user"))
-    return
-  }
+func AddUser(c *gin.Context) {
+    var user repository.User
 
-  saltedAndHashedPassword, err := bcrypt.GenerateFromPassword(user.Password, bcrypt.DefaultCost)
-  if err != nil {
-    w.WriteHeader(http.StatusBadRequest)
-    w.Write([]byte(fmt.Sprintf("Unable to process password - error: %s", err)))
-    return
-  }
+    // Parse JSON body into struct
+    if err := c.ShouldBindJSON(&user); err != nil {
+        c.JSON(http.StatusBadRequest, gin.H{
+            "error": "could not deserialize json body into user",
+        })
+        return
+    }
 
-  ctx := context.Background()
-  ctx, dbConn, err := db.PrepareContext()
-  if err != nil {
-    w.WriteHeader(http.StatusInternalServerError)
-    w.Write([]byte(fmt.Sprintf("Unable to open database - error: %s", err)))
-    return
-  }
-  defer dbConn.Close(ctx)
+    // Hash password
+    saltedAndHashedPassword, err := bcrypt.GenerateFromPassword(user.Password, bcrypt.DefaultCost)
+    if err != nil {
+        c.JSON(http.StatusBadRequest, gin.H{
+            "error": fmt.Sprintf("Unable to process password - error: %s", err),
+        })
+        return
+    }
 
-  repo := repository.New(dbConn)
-  err = repo.AddUser(
-    ctx, 
-    repository.AddUserParams{
-      Name: user.Name,
-      Email: user.Email,
-      Password: []byte(saltedAndHashedPassword),
-    },
-  )
+    // DB setup
+    ctx := context.Background()
+    ctx, dbConn, err := db.PrepareContext()
+    if err != nil {
+        c.JSON(http.StatusInternalServerError, gin.H{
+            "error": fmt.Sprintf("Unable to open database - error: %s", err),
+        })
+        return
+    }
+    defer dbConn.Close(ctx)
 
-  if err != nil {
-    w.WriteHeader(http.StatusInternalServerError)
-    w.Write([]byte(fmt.Sprintf("Unable to add user - error: %s", err)))
-    return
-  }
+    repo := repository.New(dbConn)
 
-  w.WriteHeader(http.StatusOK)
-  w.Write([]byte(fmt.Sprintf("Added user %s with email %s", user.Name, user.Email)))
+    // Insert user
+    err = repo.AddUser(ctx, repository.AddUserParams{
+        Name:     user.Name,
+        Email:    user.Email,
+        Password: saltedAndHashedPassword,
+    })
+    if err != nil {
+        c.JSON(http.StatusInternalServerError, gin.H{
+            "error": fmt.Sprintf("Unable to add user - error: %s", err),
+        })
+        return
+    }
+
+    // Success response
+    c.JSON(http.StatusOK, gin.H{
+        "message": fmt.Sprintf("Added user %s with email %s", user.Name, user.Email),
+    })
 }

@@ -5,6 +5,7 @@ import (
 	"net/http"
 	_ "time"
 
+  "github.com/gin-gonic/gin"
   "github.com/rs/cors"
 	_ "github.com/gin-contrib/cors"
 	_ "github.com/go-sql-driver/mysql"
@@ -16,35 +17,32 @@ import (
 )
 
 func main() {
-	log.Println("Hello World!")
+  r := gin.Default()
 
-  router := http.NewServeMux()
-
+  r.GET("/", func(c *gin.Context) {
+    c.JSON(http.StatusOK, gin.H{
+      "message": "Welcome to Budget Buddy Server!",
+    })
+  })
 
   //households
-  router.HandleFunc("POST /households/{name}", controllers.AddHousehold)
+  // router.HandleFunc("POST /households/{name}", controllers.AddHousehold)
+  r.POST("/households/:name", controllers.AddHousehold)
 
   //users
-  router.HandleFunc("POST /users", controllers.AddUser)
+  // router.HandleFunc("POST /users", controllers.AddUser)
+  r.POST("/users", controllers.AddUser)
 
   //categories
-  router.HandleFunc("POST /categories/{id}", controllers.AddCategory)
-  router.HandleFunc("GET /categories/{id}", controllers.GetCategoriesForHousehold)
+  // router.HandleFunc("POST /categories/{id}", controllers.AddCategory)
+  r.POST("/categories/:id", controllers.AddCategory)
+  // router.HandleFunc("GET /categories/{id}", controllers.GetCategoriesForHousehold)
+  r.GET("/categories/:id", controllers.GetCategoriesForHousehold)
 
   //transactions
-  router.HandleFunc("GET /transactions/{id}", controllers.GetTransactionsForHousehold)
-
-  _cors := cors.Options{
-      AllowedMethods: []string{"POST", "OPTIONS"},
-      AllowedOrigins: []string{"http://localhost:8080"},
-  }
-  handler := cors.New(_cors).Handler(router)
-
-  server := http.Server{
-    Addr: ":8080",
-    Handler: handler,
-  }
+  // router.HandleFunc("GET /transactions/{id}", controllers.GetTransactionsForHousehold)
+  r.GET("/transactions/:id", controllers.GetTransactionsForHousehold)
 
   log.Println("Starting server on port :8080")
-  server.ListenAndServe()
+  r.Run(":8080")
 }
