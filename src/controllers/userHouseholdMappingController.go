@@ -73,19 +73,20 @@ func AddUserHouseholdMapping(c *gin.Context) {
 	})
 }
 
-// READ 
-func GetUsersByHouseholdId(w http.ResponseWriter, r *http.Request) {
-  //TODO
+// READ
+func GetUsersByHouseholdId(c *gin.Context) {
+	//TODO
 }
-func GetHouseholdsByUserId(w http.ResponseWriter, r *http.Request) {
-  //TODO
+func GetHouseholdsByUserId(c *gin.Context) {
+	//TODO
 }
 
 // UPDATE is unnecessary here
 
 // DELETE
 // use to remove a user from a household
-func DeleteUserHouseholdMapping(w http.ResponseWriter, r *http.Request) {
-  //TODO
+func DeleteUserHouseholdMapping(c *gin.Context) {
+	//TODO
 }
+
 // use when deleting a household
